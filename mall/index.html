@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>门店系统</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="lib/layui-v2.5.5/css/layui.css" media="all">
+    <!-- <link rel="stylesheet" href="../css/public.css" media="all"> -->
+</head>
+
+<body>
+    <div class="layuimini-container">
+        <div class="layuimini-main">
+
+            <fieldset class="table-search-fieldset">
+                <legend>会员信息</legend>
+                <div style="margin: 10px 10px 10px 10px">
+                    <div id="row-1" class="layui-row layui-hide">
+                        <div class="layui-col-xs8">
+                            <div class="grid-demo grid-demo-bg1">会员账号：<span id="mobile"></span></div>
+                        </div>
+                        <div class="layui-col-xs4">
+                            <div class="grid-demo"><a href="javascript:;" id="refresh"><i class="layui-icon layui-icon-refresh">&nbsp;刷新</i></a> </div>
+                        </div>
+                        <div class="layui-col-xs12">&nbsp;</div>
+                        <div class="layui-col-xs4">
+                            <div class="grid-demo grid-demo-bg1">余额：<span id="balance"></span></div>
+                        </div>
+                        <div class="layui-col-xs2">
+                            <div class="grid-demo"><button type="button" id="dh" class="layui-btn layui-btn-primary layui-btn-xs">兑换</button></div>
+                        </div>
+                        <div class="layui-col-xs4">
+                            <div class="grid-demo">积分：<span id="points"></span></div>
+                        </div>
+                        <div class="layui-col-xs2">
+                            <div class="grid-demo"><button type="button" id="qd" class="layui-btn layui-btn-primary layui-btn-xs">签到</button></div>
+                        </div>
+                    </div>
+                    <div id="row-2" class="layui-row" style="height: 54px;text-align:center;">
+                        <a href="login.html" id="u_login" class="layui-btn layui-btn-primary layui-border-green">登录</a>
+                    </div>
+                    <div class="layui-col-xs12">&nbsp;</div>
+                    <div class="layui-row">
+                        <p style="font-size:12px;color:rgb(175 175 175)">实付金额1元/5积分，满500积分可兑换5元，结账时直接抵扣现金（一块钱返五分）。</p>
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="layui-tab">
+                <ul class="layui-tab-title" id="tabtitle">
+                    <li class="layui-this">全部</li>
+                </ul>
+                <div class="layui-tab-content" id="tabcontent" style="margin-top: 30px;">
+                    <div id="list" class="layui-tab-item layui-show">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    <script src="lib/layui-v2.5.5/layui.js" charset="utf-8"></script>
+    <script>
+        layui.use(['form', 'element'], function () {
+            var $ = layui.jquery,
+                form = layui.form,
+                element = layui.element;
+            var user_id = localStorage.getItem("user_id");
+            var token = localStorage.getItem("token");
+            $.ajax({
+                url: '/?s=App.erp_user.CheckSession',
+                type: 'post',
+                data: { 'user_id': user_id, 'token': token },
+                success: function (data) {
+                    if (data.ret != 200) {
+                        layer.msg(data.msg);
+                        return;
+                    }
+
+                    if (data.data.is_login) {
+                        $.ajax({
+                            url: '/?s=App.erp_user.Profile',
+                            type: 'post',
+                            data: { 'user_id': user_id, 'token': token },
+                            success: function (data) {
+                                if (data.ret != 200) {
+                                    layer.msg(data.msg);
+                                    return;
+                                }
+                                $('#mobile').text(data.data.profile.mobile);
+                                $('#balance').text(data.data.profile.balance);
+                                $('#points').text(data.data.profile.points);
+                                $('#row-1').removeClass('layui-hide');
+                                $('#row-2').addClass('layui-hide');
+                            }
+                        });
+                    } else {
+                        layer.msg('未登录');
+                    }
+                },
+                complete: function () {
+                }
+            });
+
+            $.ajax({
+                            url: '/?s=App.erp_type.TableList',
+                            type: 'post',
+                            data: { },
+                            success: function (data) {
+                                if (data.ret != 200) {
+                                    layer.msg(data.msg);
+                                    return;
+                                }
+                                for(var i =0;i<data.data.total;i++){
+                                    $('#tabtitle').append('<li>'+data.data.items[i].name+'</li>')
+                                    $.ajax({
+                            url: '/?s=App.erp_goods.TableList',
+                            type: 'post',
+                            data: {'searchParams':{'type':data.data.items[i].id}},
+                            success: function (data) {
+                                if (data.ret != 200) {
+                                    layer.msg(data.msg);
+                                    return;
+                                }
+                                for(var i =0;i<data.data.total;i++){
+                                    if(data.data.items[i].img){
+                                        var imglist = data.data.items[i].img.split(',');
+                                    var listhtml = '<div class="layui-tab-item"><a href="site.html?id='+data.data.items[i].id+'"><div class="layui-row layui-col-space15">'
+                                        +'<div class="layui-col-xs5"><img style="width: 120px; height: 120px; border-radius: 10px;"src="'+imglist[0]+'">'
+                                        +'</div><div class="layui-col-xs7" style="height: 120px;position:relative;">'
+                                        +'<p style="padding-left: 10px;">'+data.data.items[i].title+'</p>'
+                                        +'<p class="layui-font-red" style="padding-left: 10px;bottom:0;position:absolute;">￥'
+                                        +'<span class="layui-font-18">'+data.data.items[i].price+'</span></p></div></div></a></div>';
+$("#tabcontent").append(listhtml);
+                                    }
+                                    
+                                }
+                            }
+                        });
+                                }
+                            }
+                        });
+
+            $.ajax({
+                            url: '/?s=App.erp_goods.TableList',
+                            type: 'post',
+                            data: { },
+                            success: function (data) {
+                                if (data.ret != 200) {
+                                    layer.msg(data.msg);
+                                    return;
+                                }
+                                for(var i =0;i<data.data.total;i++){
+                                    if(data.data.items[i].img){
+                                        var imglist = data.data.items[i].img.split(',');
+                                    var listhtml = '<a href="site.html?id='+data.data.items[i].id+'"><div class="layui-row layui-col-space15">'
+                                        +'<div class="layui-col-xs5"><img style="width: 120px; height: 120px; border-radius: 10px;"src="'+imglist[0]+'">'
+                                        +'</div><div class="layui-col-xs7" style="height: 120px;position:relative;">'
+                                        +'<p style="padding-left: 10px;">'+data.data.items[i].title+'</p>'
+                                        +'<p class="layui-font-red" style="padding-left: 10px;bottom:0;position:absolute;">￥'
+                                        +'<span class="layui-font-18">'+data.data.items[i].price+'</span></p></div></div></a>';
+$("#list").append(listhtml);
+                                    }
+                                    
+                                }
+                            }
+                        });
+
+            $('#dh').on('click', function(){
+                $.ajax({
+                            url: '/?s=App.erp_user.B2p',
+                            type: 'post',
+                            data: { 'user_id': user_id, 'token': token },
+                            success: function (data) {
+                                if (data.ret != 200) {
+                                    layer.msg(data.msg);
+                                    return;
+                                }
+                                layer.msg("兑换成功");
+                                window.location = 'index.html';
+                            }
+                        });
+            });
+
+            $('#qd').on('click', function(){
+                $.ajax({
+                            url: '/?s=App.erp_user.Attendance',
+                            type: 'post',
+                            data: { 'user_id': user_id, 'token': token },
+                            success: function (data) {
+                                if (data.ret != 200) {
+                                    layer.msg(data.msg);
+                                    return;
+                                }
+                                layer.msg("签到成功");
+                                window.location = 'index.html';
+                            }
+                        });
+            });
+
+            $('#refresh').on('click', function(){
+                window.location.reload();
+            });
+
+
+
+        });
+    </script>
+    <script>
+
+    </script>
+
+</body>
+
+</html>
